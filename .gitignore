@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# macOS
+.DS_Store
+._*
+
+# Large run data (optional - uncomment to exclude)
+# runs/
+# runs/store/
+
+# IDE
+.vscode/
+.idea/
+
+# Test artifacts
+test.txt
