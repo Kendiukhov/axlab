@@ -1,0 +1,17 @@
+{
+  "logic": "equational",
+  "max_term_size": 5,
+  "max_vars": 3,
+  "operations": [
+    {
+      "name": "f",
+      "arity": 2,
+      "commutative": false
+    },
+    {
+      "name": "g",
+      "arity": 1
+    }
+  ],
+  "version": "v0"
+}
