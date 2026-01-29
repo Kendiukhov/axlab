@@ -28,9 +28,13 @@ pie title Axiom Property Distribution (Overlap Possible)
     "Novel/Weird (0 Law)" : 32
 ```
 
-### Exploration Heatmap (Conceptual)
+### Exploration Heatmap
+![Exploration Heatmap](file:///Volumes/Crucial%20X6/MacBook/Code/axioms/reports/exploration_heatmap.png)
 
-The search proceeds by the "enumeration offset" of the term generator.
+The search proceeds by the "enumeration offset" of the term generator. In the 22x22 grid above:
+- **Black**: Unexplored regions.
+- **Gray**: Explored axioms that were found to be degenerate or trivial.
+- **Cyan**: Non-trivial axioms with confirmed properties.
 
 | Cycle (Offset) | Status | Non-Trivial Density |
 |----------------|--------|---------------------|
