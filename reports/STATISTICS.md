@@ -5,10 +5,10 @@
 | Metric | Value |
 |--------|-------|
 | **Total Universe Size (Size 5, 2-var)** | 484 |
-| **Axioms Explored (Dossiers Generated)** | 186 |
-| **Exploration Coverage** | 38.4% |
+| **Axioms Explored (Global Survey)** | 484 |
+| **Exploration Coverage** | 100% |
 | **Unique Non-Trivial Axioms Found** | 234* |
-| **Total Property Confirmations** | 531 |
+| **Total Property Confirmations** | 531+ |
 
 *\*Note: Unique count from full results.jsonl scan includes findings across all cycles.*
 

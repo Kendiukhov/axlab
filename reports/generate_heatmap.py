@@ -18,9 +18,10 @@ def generate_heatmap(root_dir, output_path):
                     if data.get('event') == 'enumerate':
                         offset = data['offset']
                         for i, ax in enumerate(data['axioms']):
-                            ax_str = f"{ax['left']} = {ax['right']}"
                             idx = offset + i
-                            axiom_to_index[ax_str] = idx
+                            if idx < 484:
+                                ax_str = f"{ax['left']} = {ax['right']}"
+                                axiom_to_index[ax_str] = idx
                 except:
                     continue
 
