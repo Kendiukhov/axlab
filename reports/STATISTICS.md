@@ -28,13 +28,23 @@ pie title Axiom Property Distribution (Overlap Possible)
     "Novel/Weird (0 Law)" : 32
 ```
 
-### Exploration Heatmap
+### Global Structure & Complexity Heatmap
 ![Exploration Heatmap](file:///Volumes/Crucial%20X6/MacBook/Code/axioms/reports/exploration_heatmap.png)
 
-The search proceeds by the "enumeration offset" of the term generator. In the 22x22 grid above:
-- **Black**: Unexplored regions.
-- **Gray**: Explored axioms that were found to be degenerate or trivial.
-- **Cyan**: Non-trivial axioms with confirmed properties.
+#### Legend:
+- **Black**: Unexplored frontier.
+- **Gray**: Explored axioms found to be degenerate or trivial.
+- **Purple**: Associative (Semigroups/Monoids).
+- **Magenta**: Self-Distributive (Shelves/Racks).
+- **Cyan**: Medial (Entropic/Groupoids).
+- **Blue**: Idempotent.
+- **Green**: Other Interesting (Refutes standard laws but has non-trivial properties).
+
+#### Understanding the Dimensions:
+The 22x22 grid ($484$ total cells) represents the entire search space for axioms of size 5 with 2 variables.
+
+- **Y-Axis (Rows - Offset // 22)**: Represents **Syntactic Complexity Groups**. As you move from top to bottom, the enumeration depth and term structure complexity generally increase. The top rows contain simpler combinations (e.g., $x=f(x,x)$ variants), while the bottom rows contain deeper nestings.
+- **X-Axis (Columns - Offset % 22)**: Represents **Variable Permutations & Refinements** within a complexity group. Within a single row, the term structure remains similar while the placement of $x_0, x_1$ and the nesting of identical sub-terms are varied.
 
 | Cycle (Offset) | Status | Non-Trivial Density |
 |----------------|--------|---------------------|
