@@ -1,119 +1,110 @@
-
 import json
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import numpy as np
+import re
 from pathlib import Path
-import os
+
+def get_can(ax):
+    return '='.join(sorted([ax['left'].replace(' ',''), ax['right'].replace(' ','')]))
+
+def canonicalize_eq(left, right):
+    s = f"{left}={right}".replace(" ", "")
+    vars_found = re.findall(r'x\d+', s)
+    vmap = {}
+    for v in vars_found:
+        if v not in vmap:
+            vmap[v] = f"x{len(vmap)}"
+    
+    # Use a single-pass replacement to avoid double-substitution bugs
+    if vmap:
+        pattern = re.compile("|".join(re.escape(k) for k in vmap.keys()))
+        s = pattern.sub(lambda m: vmap[m.group(0)], s)
+    
+    parts = s.split('=')
+    if len(parts) == 2:
+        return "=".join(sorted(parts))
+    return s
 
 def generate_heatmap(root_dir, output_path):
-    # 1. Build Axiom -> Index mapping from agent_log
-    axiom_to_index = {}
+    root_dir = Path(root_dir)
+    log_path = root_dir / "agent_log.jsonl"
     
-    log_path = Path(root_dir) / "agent_log.jsonl"
+    idx_to_can = {}
     if log_path.exists():
         with open(log_path, 'r') as f:
             for line in f:
                 try:
                     data = json.loads(line)
-                    if data.get('event') == 'enumerate':
-                        offset = data['offset']
-                        for i, ax in enumerate(data['axioms']):
+                    if data.get("event") == "enumerate":
+                        offset = data["offset"]
+                        for i, ax in enumerate(data["axioms"]):
                             idx = offset + i
                             if idx < 484:
-                                ax_str = f"{ax['left']} = {ax['right']}"
-                                axiom_to_index[ax_str] = idx
-                except:
-                    continue
+                                idx_to_can[idx] = canonicalize_eq(ax["left"], ax["right"])
+                except: continue
 
-    # 2. Identify Explored and Categorize Interesting Indices
-    # 0: Unexplored, 1: Trivial/Degenerate, 2: Associative, 3: Self-Dist, 4: Medial, 5: Idempotent, 6: Other
-    grid_data = np.zeros(484)
-    explored_indices = set()
+    # PRIORITY: Higher value is plotted.
+    # 0: Gap (Black)
+    # 1: Trivial (Gray)
+    # 2: Novel/Interesting (Gold)
+    # 3: Other Laws (Lime)
+    # 4: Idempotent (Blue)
+    # 5: Medial (Cyan)
+    # 6: Self-Distributive (Pink)
+    # 7: Associative (Purple)
     
-    if log_path.exists():
-        with open(log_path, 'r') as f:
+    can_to_data = {}
+    for res_path in root_dir.glob("**/results.jsonl"):
+        with open(res_path, 'r') as f:
             for line in f:
                 try:
                     data = json.loads(line)
-                    if data.get('event') == 'select':
-                        for ax in data['axioms']:
-                            ax_str = f"{ax['left']} = {ax['right']}"
-                            if ax_str in axiom_to_index:
-                                grid_data[axiom_to_index[ax_str]] = 1
-                    if data.get('event') == 'interpret':
-                        ax = data['axiom']
-                        ax_str = f"{ax['left']} = {ax['right']}"
-                        if ax_str in axiom_to_index:
-                            grid_data[axiom_to_index[ax_str]] = 1
-                except:
-                    continue
-
-    root_path = Path(root_dir)
-    for res_file in root_path.glob("**/results.jsonl"):
-        with open(res_file, 'r') as f:
-            for line in f:
-                try:
-                    data = json.loads(line)
-                    dossier = data.get('dossier', data)
-                    ax = dossier['axiom']
-                    ax_str = f"{ax['left']} = {ax['right']}"
+                    d = data.get("dossier", data)
+                    can = canonicalize_eq(d["axiom"]["left"], d["axiom"]["right"])
                     
-                    if ax_str not in axiom_to_index: continue
-                    idx = axiom_to_index[ax_str]
-
-                    confirmed = []
-                    if 'properties' in dossier:
-                        confirmed = [p['name'] for p in dossier['properties'] if p.get('status') == 'confirmed']
-                    elif 'implications' in dossier:
-                        confirmed = [i['theory'] for i in dossier['implications'] if i.get('status') == 'confirmed']
+                    val = 1 # Trivial
+                    degen = d.get("degeneracy", {})
+                    if not (degen.get("trivial_identity") or degen.get("projection_collapse") or degen.get("constant_collapse")):
+                        props = [p["name"] for p in d.get("properties", []) if p.get("status") == "confirmed"]
+                        if not props:
+                            props = [i["theory"] for i in d.get("implications", []) if i.get("status") == "confirmed"]
+                        
+                        if props:
+                            if "associative" in props: val = 7
+                            elif any(x in props for x in ["left_self_distributive", "right_self_distributive"]): val = 6
+                            elif "medial" in props: val = 5
+                            elif "idempotent" in props: val = 4
+                            else: val = 3 # Other Law
+                        else:
+                            val = 2 # Novel Discovery
                     
-                    if not confirmed:
-                        grid_data[idx] = 1 # Mark as trivial
-                        continue
+                    if can not in can_to_data or val > can_to_data[can]:
+                        can_to_data[can] = val
+                except: continue
 
-                    # Precedence: Associative > Self-Dist > Medial > Idempotent > Other
-                    if 'associative' in confirmed: grid_data[idx] = 2
-                    elif 'left_self_distributive' in confirmed or 'right_self_distributive' in confirmed: grid_data[idx] = 3
-                    elif 'medial' in confirmed: grid_data[idx] = 4
-                    elif 'idempotent' in confirmed: grid_data[idx] = 5
-                    else: grid_data[idx] = 6
-                except:
-                    continue
+    grid = np.zeros(484)
+    for idx, can in idx_to_can.items():
+        if can in can_to_data:
+            grid[idx] = can_to_data[can]
+    
+    # NEW VIBRANT COLORS WITH CORRECT PRIORITY
+    # 0: Black, 1: Gray, 2: Gold, 3: Lime, 4: DodgerBlue, 5: Cyan, 6: DeepPink, 7: BlueViolet
+    colors = ["black", "#7F7F7F", "#FFD700", "#32CD32", "#1E90FF", "#00FFFF", "#FF1493", "#8A2BE2"]
+    cmap = mcolors.ListedColormap(colors)
+    norm = mcolors.BoundaryNorm(np.arange(len(colors) + 1) - 0.5, len(colors))
 
-    # 3. Construct 22x22 Grid
-    grid = grid_data.reshape((22, 22))
-
-    # 4. Plot Heatmap
-    plt.figure(figsize=(11, 11))
-    plt.style.use('dark_background')
+    matrix = grid.reshape((22, 22))
+    fig, ax = plt.subplots(figsize=(10, 10), facecolor='black')
+    ax.imshow(matrix, cmap=cmap, norm=norm)
+    ax.set_title("Axiom Discovery Catalog: Structural Distribution", color='white', fontsize=18)
     
-    from matplotlib.colors import ListedColormap
-    # Colors: Black, Gray, Purple (Assoc), Magenta (Dist), Cyan (Medial), Blue (Idem), Green (Other)
-    colors = ['#000000', '#333333', '#7C4DFF', '#FF00FF', '#00E5FF', '#448AFF', '#B2FF59']
-    cmap = ListedColormap(colors)
-    
-    plt.imshow(grid, cmap=cmap, interpolation='nearest')
-    
-    plt.title("Spatial Distribution of Axiom Properties (22x22 Universe)", fontsize=16, pad=20)
-    plt.xlabel("Offset % 22 (Complexity Sub-cycle)", fontsize=12)
-    plt.ylabel("Offset // 22 (Complexity Group)", fontsize=12)
-    
-    from matplotlib.patches import Patch
-    legend_elements = [
-        Patch(facecolor='#000000', label='Unexplored'),
-        Patch(facecolor='#333333', label='Trivial/Degenerate'),
-        Patch(facecolor='#7C4DFF', label='Associative'),
-        Patch(facecolor='#FF00FF', label='Self-Distributive'),
-        Patch(facecolor='#00E5FF', label='Medial (Entropic)'),
-        Patch(facecolor='#448AFF', label='Idempotent'),
-        Patch(facecolor='#B2FF59', label='Other Interesting')
-    ]
-    plt.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.08), ncol=3)
+    labels = ["Gap", "Trivial", "Discovery", "Other Laws", "Idempotent", "Medial", "Self-Dist", "Associative"]
+    patches = [plt.Rectangle((0,0),1,1, color=c) for c in colors]
+    ax.legend(patches, labels, loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=4, frameon=False, labelcolor='white')
 
     plt.tight_layout()
-    plt.savefig(output_path, dpi=300)
-    plt.close()
-    print(f"Enhanced Heatmap saved to {output_path}")
+    plt.savefig(output_path, dpi=120)
 
 if __name__ == "__main__":
     generate_heatmap("/Volumes/Crucial X6/MacBook/Code/axioms/runs", "/Volumes/Crucial X6/MacBook/Code/axioms/reports/exploration_heatmap.png")
