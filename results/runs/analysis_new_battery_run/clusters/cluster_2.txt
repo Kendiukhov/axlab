@@ -1,5 +1,0 @@
-Cluster 2:
-  Common Confirmed Properties: associative, flexible, idempotent, left_alternative, left_self_distributive, medial, right_alternative, right_projection, right_self_distributive
-  Common Refuted Properties: commutative, involutive, left_projection
-  Axioms:
-    x0 = f(x1,x0)

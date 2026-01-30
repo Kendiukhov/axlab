@@ -1,2 +1,0 @@
-Cluster 4:
-  No axioms in this cluster.

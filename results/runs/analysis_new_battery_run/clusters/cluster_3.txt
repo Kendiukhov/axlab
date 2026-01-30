@@ -1,2 +1,0 @@
-Cluster 3:
-  No axioms in this cluster.

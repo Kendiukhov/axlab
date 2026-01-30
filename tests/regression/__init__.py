@@ -1,1 +1,0 @@
-"""Regression fixtures and tests."""
